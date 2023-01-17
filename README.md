@@ -41,7 +41,7 @@ Run the notebook on Max-JHub. The kernel `midtools` should be available in the l
 
 ## Notes:
 
-- Use the new mask `mask_r0041_00.npy`.
+- Use the new mask `mask_r0057_02.npy`.
 
 
 
