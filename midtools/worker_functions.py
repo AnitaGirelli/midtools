@@ -84,7 +84,7 @@ def _to_asics(data, reverse=False, subshape=(64, 64)):
             return data.reshape(nv, nh, nrows, ncols).swapaxes(1, 2).reshape(512, 128)
 
 
-def _asic_commonmode_worker(frames, mask, adu_per_photon=58, subshape=(64, 64)):
+def _asic_commonmode_worker(frames, mask, adu_per_photon=8.9, subshape=(64, 64)):
     """Asic commonmode to be used in apply_along_axis"""
     frames = frames.reshape(-1, 16, 512, 128)
     frames[:, ~mask] = np.nan
@@ -100,7 +100,7 @@ def _asic_commonmode_worker(frames, mask, adu_per_photon=58, subshape=(64, 64)):
     return frames
 
 
-def _cell_commonmode_worker(frames, mask, adu_per_photon=58, window=16):
+def _cell_commonmode_worker(frames, mask, adu_per_photon=8.9, window=16):
     """Time axis Commonmode to be used in apply_along_axis"""
     frames[:, ~mask] = np.nan
     move_mean = bn.move_mean(frames, window, axis=0, min_count=1)
@@ -108,8 +108,12 @@ def _cell_commonmode_worker(frames, mask, adu_per_photon=58, window=16):
     return frames
 
 
-def _dropletize_worker(arr, adu_per_photon=58):
+def _dropletize_worker(arr, adu_per_photon=8.9):
     """Convert adus to photon counts."""
+
     arr = np.floor((arr + 0.5 * adu_per_photon) / adu_per_photon)
-    arr = np.where(arr >= 0, arr, -9999)
+    #arr = np.floor((arr ) / adu_per_photon)
+    arr = np.where(arr >= 0, arr, -1)
     return arr
+
+

@@ -37,6 +37,7 @@ def average(
 
     arr = calibrator.data.copy(deep=False)
 
+    
     if len(axisl) == 1:
         axis = axisl[0]
         arr = arr.sel(trainId=trainIds[:max_trains], method="nearest")
@@ -49,15 +50,16 @@ def average(
     if chunks is None:
         chunks = {axis: 1}
 
+    if calibrator.worker_corrections["dropletize"]:
+        arr = calibrator._dropletize(arr)
+    
+
     if calibrator.worker_corrections["asic_commonmode"]:
         arr = calibrator._asic_commonmode_xarray(arr)
         if len(axisl) == 1:
             arr = arr.unstack("train_pulse")
             arr = arr.stack(pixels=("module", "dim_0", "dim_1"))
             arr = arr.transpose(axis, ..., "pixels")
-
-    if calibrator.worker_corrections["dropletize"]:
-        arr = calibrator._dropletize(arr)
 
     print("Start computation", flush=True)
     arr = arr.chunk(chunks)

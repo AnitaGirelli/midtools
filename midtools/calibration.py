@@ -32,7 +32,7 @@ class Calibrator:
         subshape=(64, 64),
         cell_commonmode=False,
         cellCM_window=2,
-        adu_per_photon=66,
+        adu_per_photon=8.9,
     ):
 
         #: DataCollection: e.g., returned from extra_data.RunDirectory
@@ -305,8 +305,11 @@ class Calibrator:
 
     def _dropletize(self, arr):
         """Convert adus to photon counts."""
+
         arr = np.floor((arr + 0.5 * self.adu_per_photon) / self.adu_per_photon)
-        arr = arr.where(arr >= 0, other=-1).fillna(-1).astype("int16")
+        #arr = arr.where(arr >= 0).fillna(-1)
+        arr = arr.where(arr >= 0, other=-1).astype("int16")
+        #arr = np.where(arr >= 0, arr, -9999)
         return arr
 
     def _internal_masking(self, arr):

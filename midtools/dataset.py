@@ -252,7 +252,7 @@ class Dataset:
         #: tuple: Position of the direct beam in pixels
         self.center = setup_pars.pop("beamcenter", None)
         self.agipd_geom = setup_pars.pop("geometry", False)
-        self.adu_per_photon = setup_pars.pop("adu_per_photon", 66)
+        self.adu_per_photon = setup_pars.pop("adu_per_photon", 8.9)
 
         # save the other entries as attributes
         self.__dict__.update(setup_pars)
@@ -382,7 +382,7 @@ class Dataset:
                     "with run folder (e.g., r0123.)"
                 )
         elif isinstance(self.run_number, np.integer) and isinstance(self.proposal, np.integer):
-            self.run = open_run(self.run_number, proposal, data='raw')
+            self.run = open_run(self.run_number, proposal, data='all')
             self.__datdir = str(Path(self.run.files[0].filename).parent)
         elif isinstance(self.run, extra_data.reader.DataCollection):
             self.__datdir = str(Path(self.run.files[0].filename).parent)
@@ -553,11 +553,13 @@ class Dataset:
 
     def _get_pulse_pattern(self, pulses_per_train=500, pulse_step=1):
         """determine pulses pattern from machine source"""
+        
         source = "MID_RR_SYS/MDL/PULSE_PATTERN_DECODER"
+        
         if os.path.isfile(self.pulse_file):
             pass
         elif source in self.run.all_sources and not (self.is_dark or self.is_flatfield):
-            pulses = self.run.get_array(source, "sase2.pulseIds.value")
+            pulses = sourcesfile.get_array(source, "sase2.pulseIds.value")
             pulse_spacing = np.unique(pulses.where(pulses > 199).diff("dim_0"))
             pulse_spacing = pulse_spacing[np.isfinite(pulse_spacing)].astype("int32")
             pulseIds = pulses // 200
@@ -889,24 +891,25 @@ class Dataset:
         diagnostics_opt.update(self._diagnostics_opt)
 
         print(f"Read XGM and control sources.")
-        sources = {
-            "SA2_XTD1_XGM/XGM/DOOCS:output": [
-                "data.intensityTD",
-                "data.xTD",
-                "data.yTD",
-            ],
-            **{
-                f"HW_MID_EXP_SAM_MOTOR_SSHEX_{x}": ["actualPosition.value"]
-                for x in "YZ"
-            },
-            "MID_EXP_UPP/TCTRL/LINKAM": ["temperature.value"],
-        }
-        sources = dict(filter(lambda x: x[0] in self.run.all_sources, sources.items()))
 
+        sourcesfile = open_run(proposal='p003094', run=self.run_number,data='raw')
+        allsources=sourcesfile.all_sources
+
+        sources = {
+            "SA2_XTD1_XGM/XGM/DOOCS:output": ["data.intensityTD","data.xTD","data.yTD"],
+            "MID_EXP_SAM/MDL/DOWNSAMPLER": ["sshexActualPositionVector.value"]}
+        sources=dict(sources)
+        print('the sources are:')
+              
+        print(len(sources))
+        
+        sources = dict(filter(lambda x: x[0] in allsources, sources.items()))
+        print('all the sources are:')
+        print(len(allsources))
         arr = {}
         for source in sources:
             for key in sources[source]:
-                data = self.run.get_array(source, key)
+                data = sourcesfile.get_array(source, key)
                 if ("XGM" in source) and (key == "data.intensityTD") and (diagnostics_opt['xgm_threshold']>0):
                     self.selected_train_ids = np.intersect1d(data.isel(
                       trainId=data.mean("dim_0") > diagnostics_opt['xgm_threshold']
@@ -1020,7 +1023,7 @@ class Dataset:
         print(
             f"Initially: masked {round((1-self.mask.sum()/self.mask.size)*100,2)}% of all pixels"
         )
-
+        
         mask = mask_radial(frames["average"], self.qmap, self.mask)
         print(f"Average: masked {round((1-mask.sum()/mask.size)*100,2)}% of all pixels")
 
@@ -1036,8 +1039,7 @@ class Dataset:
 
         mask = mask_asics(mask)
         print(f"Asics: masked {round((1-mask.sum()/mask.size)*100,2)}% of all pixels")
-
-        self.mask = mask
+        mask =self.mask
         self._calibrator.xmask = mask
         frames["mask"] = mask
         return frames
