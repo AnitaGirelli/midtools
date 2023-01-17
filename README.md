@@ -19,7 +19,7 @@ module load maxwell anaconda-python/3.8
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install --upgrade git+https://github.com/reiserm/midtools.git
+pip install --upgrade git+https://github.com/AnitaGirelli/midtools.git
 ```
 
 The virutal environment can be deactivated by typing `deactivate`. 
